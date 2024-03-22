@@ -4,12 +4,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.PostConstruct;
 import org.apache.log4j.Logger;
-
 
 @Component
 public class FitnessBot extends TelegramLongPollingBot{
@@ -19,10 +22,22 @@ public class FitnessBot extends TelegramLongPollingBot{
 	private String token = "7033585733:AAGXgDOBCO3R9lz2XX1HVVGOWR_hcfThNds";
 	private UpdateController controller;
 	
+	
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
 	
 	public FitnessBot(UpdateController controller) {
 		this.controller = controller;
+		
+		List<BotCommand> listofCommands = new ArrayList<>();
+        listofCommands.add(new BotCommand("/start", "уточните график тренеровок"));
+        listofCommands.add(new BotCommand("/tren", "список доступных упражнений"));
+        listofCommands.add(new BotCommand("/test", "тестовая команда"));
+        listofCommands.add(new BotCommand("/stat", "ваша статистика"));
+        try {
+            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            log.error("Error setting bot's command list: " + e.getMessage());
+        }
 	}
 	
 	@PostConstruct
@@ -42,13 +57,7 @@ public class FitnessBot extends TelegramLongPollingBot{
 	
 	@Override
 	public void onUpdateReceived(Update update) {
-		Message receivedMessage = update.getMessage();
-		log.debug(receivedMessage.getText());
-		
-		SendMessage response = new SendMessage();
-		response.setChatId(receivedMessage.getChatId().toString());
-		response.setText("Тестовое сообщение от бота");
-		sendAnswerMessage(response);
+		controller.processUpdate(update);
 	}
 	
     public void sendAnswerMessage(SendMessage message) {
