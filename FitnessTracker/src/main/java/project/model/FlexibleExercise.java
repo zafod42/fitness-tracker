@@ -1,7 +1,5 @@
 package project.model;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 public class FlexibleExercise implements Exercise {
 	private Integer id;
 	private String description;

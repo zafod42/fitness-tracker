@@ -1,6 +1,7 @@
 package project.controller;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
 import project.model.CardioExercise;
 import project.model.Exercise;
@@ -19,21 +22,10 @@ public class UpdateController {
 	private FitnessBot bot;
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
 	
-	private static List<Exercise> ExerciseList = new ArrayList<>();
-	
 	public void registerBot(FitnessBot bot) {
         this.bot = bot;
         
-        ExerciseList.add(new FlexibleExercise("Прижки в длинну", "очень полезное упражнение - мамой клянусь", 3001));
-        ExerciseList.add(new StrengthExercise("Планка на прямых руках", "статическая нагрузка мышц груди", 1001));
-        ExerciseList.add(new StrengthExercise("Отжимания", "упражнение для верхней части тела. Выполняется, когда лицо опущено вниз, и руки отталкивают тело от земли.", 1002));
-        ExerciseList.add(new StrengthExercise("Приседания", "упражнение для ног и ягодиц, выполняется, опускаясь в положение, как будто вы садитесь на стул, а затем поднимаетесь.", 1003));
-        ExerciseList.add(new CardioExercise("Бег на месте", "кардиоупражнение, которое можно выполнять дома, бегая на месте.", 2001));
-        ExerciseList.add(new StrengthExercise("Подтягивания", "упражнение для верхней части тела, выполняется подтягиванием тела вверх, держась за перекладину.", 1004));
-        ExerciseList.add(new FlexibleExercise("Махи ногами", "упражнение для ног и ягодиц, выполняется махая ногой вперед и назад.", 3002));
-        ExerciseList.add(new FlexibleExercise("Лодка", "упражнение для спины и пресса, выполняется, лежа на животе и поднимая туловище и ноги от пола, формируя форму лодки.", 3003));
-        ExerciseList.add(new CardioExercise("Прыжки на скакалке", "кардиоупражнение, которое также тренирует координацию, выполняется с прыжками через скакалку.", 2002));
-    }
+        }
 	
 	
 	public void processUpdate(Update update) {
@@ -44,8 +36,23 @@ public class UpdateController {
 		
 		if (update.hasMessage()) {
 			defineCommand(update.getMessage());
-		} else {
+		} else if (update.hasCallbackQuery()) {
+            String callbackData = update.getCallbackQuery().getData();
+            
+            SendMessage response = new SendMessage();
+
+            if(callbackData.equals("YES_BUTTON")){
+            	response.setText("(Тестовое) Вы нажали \"да\"");
+            	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+                bot.sendAnswerMessage(response);
+            }
+            else if(callbackData.equals("NO_BUTTON")){
+            	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+            	response.setText("(Тестовое) Вы нажали \"нет\"");
+                bot.sendAnswerMessage(response);
+            } else {
 			log.error("Unsupported message type is received: " + update);
+            }
 		}
 	}
 	
@@ -53,11 +60,32 @@ public class UpdateController {
 	{
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
-		for (Exercise exercise : ExerciseList) {
-	        if (exercise.getExerciseId().toString().equals(command)) {
-	        	response.setText(exercise.getName() + "\n" + exercise.getDescription());
+		for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
+	        if (entry.getKey().toString().equals(command)) {
+	        	response.setText(entry.getValue().getName() + "\n" + entry.getValue().getDescription() + "\n\nДобавить упражнение в вашу тренировку?");
 	        }
 		}
+		
+		InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+        InlineKeyboardButton yesButton = new InlineKeyboardButton();
+
+        yesButton.setText("Да");
+        yesButton.setCallbackData("YES_BUTTON");
+
+        InlineKeyboardButton noButton = new InlineKeyboardButton();
+
+        noButton.setText("Нет");
+        noButton.setCallbackData("NO_BUTTON");
+
+        rowInLine.add(yesButton);
+        rowInLine.add(noButton);
+
+        rowsInLine.add(rowInLine);
+
+        markupInLine.setKeyboard(rowsInLine);
+        response.setReplyMarkup(markupInLine);
 		
 		bot.sendAnswerMessage(response);
 		log.debug(msg.getText());
@@ -99,19 +127,16 @@ public class UpdateController {
 	}
 	
 	public void viewExercises(Message msg) {
-		//тут должна быть функция, выводящая доступные упражнения
-		//пользователь должен иметь возможность тыкать на них прямо в сообщении, чтоб узнать о них подробнее/добавить упражнение в тренировку
 		  SendMessage sendMessage = new SendMessage();
 		  String helpStr = new String();
 		  sendMessage.setChatId(msg.getChatId());
-		  for (Exercise exercise : ExerciseList) {
-			  helpStr += "<a href='" + "https://t.me/FitTrackDomovonokBot?start=" + exercise.getExerciseId().toString() + "'>" + exercise.getName() + "</a>\n";
+		  for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
+			  helpStr += "<a href='" + "https://t.me/FitTrackDomovonokBot?start=" + entry.getKey().toString() + "'>" + entry.getValue().getName() + "</a>\n";
 		  }
-		  //sendMessage.setText("<a href='" + "https://t.me/FitTrackDomovonokBot?start=" + "'>URL</a>\n");
 		  sendMessage.setText(helpStr);
 		  sendMessage.enableHtml(true);
 		  bot.sendAnswerMessage(sendMessage);
-		  
+		  log.debug(msg.getText());
 	}
 	
 	public void testOutput(Message msg) {

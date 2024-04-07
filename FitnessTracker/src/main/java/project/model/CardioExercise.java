@@ -1,7 +1,5 @@
 package project.model;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 public class CardioExercise implements Exercise {
 	private Integer id;
 	private String description;
@@ -16,6 +14,7 @@ public class CardioExercise implements Exercise {
 	}
 	
 	public CardioExercise(String name, String description, int id) {
+		
 		this.name = name;
 		this.description = description;
 		this.id = id;
