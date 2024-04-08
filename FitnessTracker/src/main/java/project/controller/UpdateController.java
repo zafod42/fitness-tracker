@@ -24,9 +24,7 @@ public class UpdateController {
 	
 	public void registerBot(FitnessBot bot) {
         this.bot = bot;
-        
         }
-	
 	
 	public void processUpdate(Update update) {
 		if (update == null) {
@@ -60,11 +58,7 @@ public class UpdateController {
 	{
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
-		for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
-	        if (entry.getKey().toString().equals(command)) {
-	        	response.setText(entry.getValue().getName() + "\n" + entry.getValue().getDescription() + "\n\nДобавить упражнение в вашу тренировку?");
-	        }
-		}
+		response.setText(bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getName() + "\n" + bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription() + "\n\nДобавить упражнение в вашу тренировку?");
 		
 		InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
