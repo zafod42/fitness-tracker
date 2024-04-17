@@ -8,6 +8,9 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import project.model.TrainingLibrary;
+
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +25,13 @@ public class FitnessBot extends TelegramLongPollingBot{
 	private String token = "7033585733:AAGXgDOBCO3R9lz2XX1HVVGOWR_hcfThNds";
 	private UpdateController controller;
 	
+	private TrainingLibrary Exercises = new TrainingLibrary();
 	
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
 	
 	public FitnessBot(UpdateController controller) {
 		this.controller = controller;
+		Exercises.initialize();
 		
 		List<BotCommand> listofCommands = new ArrayList<>();
         listofCommands.add(new BotCommand("/start", "уточните график тренеровок"));
@@ -53,6 +58,10 @@ public class FitnessBot extends TelegramLongPollingBot{
 	@Override
 	public String getBotToken() {
 		return token;
+	}
+	
+	public TrainingLibrary getExercises() {
+		return Exercises;
 	}
 	
 	@Override
