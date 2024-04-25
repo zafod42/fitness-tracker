@@ -14,11 +14,6 @@ SET standard_conforming_strings = on;
 CREATE ROLE postgres;
 ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS;
 
-
-
-
-
-
 --
 -- Databases
 --
@@ -128,15 +123,9 @@ COMMENT ON COLUMN public.exercises.type IS 'Тип упражнения';
 CREATE TABLE public.users (
     id integer,
     exercises integer[],
-    info text
+    info text,
+    chat_id integer
 );
-
--- Добавление столбца chat_id в таблицу users, если он еще не добавлен
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS chat_id INTEGER;
-
--- Установка уникальности для chat_id, чтобы каждый пользователь мог быть идентифицирован по уникальному идентификатору чата
-ALTER TABLE public.users ADD CONSTRAINT unique_chat_id UNIQUE (chat_id);
-
 
 ALTER TABLE public.users OWNER TO postgres;
 
@@ -187,4 +176,3 @@ ALTER TABLE ONLY public.users
 --
 -- PostgreSQL database cluster dump complete
 --
-
