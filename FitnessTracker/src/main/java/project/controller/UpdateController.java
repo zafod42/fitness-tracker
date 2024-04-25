@@ -113,12 +113,22 @@ public class UpdateController {
 		
 	}
 	
-	public void registerUser(Message msg) {
-		//тут должна быть функция, проверяющая зарегестрирован ли уже пользователь
-		//если нет -> позволить зарегестрировваться
-		//если да -> вывести сообщение настройки даты тренировок/возможность начать тренировку прямо сейчас
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
-	}
+	public void registerUser(Message msg) {
+		String chatId = msg.getChatId().toString();
+		Integer userId = jdbcTemplate.queryForObject("SELECT id FROM users WHERE chat_id = ?", new Object[]{chatId}, Integer.class);
+
+        SendMessage response = new SendMessage();
+        response.setChatId(chatId);
+        if (userId == null) {
+            response.setText("Вы не зарегистрированы. Пожалуйста, зарегистрируйтесь.");
+        } else {
+            response.setText("Вы уже зарегистрированы.");
+        }
+        bot.sendAnswerMessage(response);
+    }
 	
 	public void viewExercises(Message msg) {
 		  SendMessage sendMessage = new SendMessage();
