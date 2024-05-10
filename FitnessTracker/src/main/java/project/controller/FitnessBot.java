@@ -1,5 +1,6 @@
 package project.controller;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -23,8 +24,9 @@ public class FitnessBot extends TelegramLongPollingBot{
 	private String name = "FitTrackDomovonokBot";
 	@Value("${bot.token}")
 	private String token = "7033585733:AAGXgDOBCO3R9lz2XX1HVVGOWR_hcfThNds";
-	private UpdateController controller;
+	private final UpdateController controller;
 	
+	@Getter
 	private TrainingLibrary Exercises = new TrainingLibrary();
 	
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
@@ -59,11 +61,7 @@ public class FitnessBot extends TelegramLongPollingBot{
 	public String getBotToken() {
 		return token;
 	}
-	
-	public TrainingLibrary getExercises() {
-		return Exercises;
-	}
-	
+
 	@Override
 	public void onUpdateReceived(Update update) {
 		controller.processUpdate(update);
