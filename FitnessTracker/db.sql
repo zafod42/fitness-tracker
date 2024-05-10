@@ -1,36 +1,18 @@
---
--- PostgreSQL database cluster dump
---
-
 SET default_transaction_read_only = off;
-
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 
---
--- Roles
---
-
-CREATE ROLE postgres;
-ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS;
-
---
--- Databases
---
-
---
--- Database "template1" dump
---
+DO
+$$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'postgres') THEN
+            CREATE ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS;
+        END IF;
+    END
+$$;
 
 \connect template1
 
---
--- PostgreSQL database dump
---
-
--- Dumped from database version 14.5
--- Dumped by pg_dump version 14.5
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -41,24 +23,9 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
---
--- PostgreSQL database dump complete
---
-
---
--- Database "postgres" dump
---
 
 \connect postgres
 
---
--- PostgreSQL database dump
---
-
--- Dumped from database version 14.5
--- Dumped by pg_dump version 14.5
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -69,110 +36,46 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
-
 SET default_tablespace = '';
-
 SET default_table_access_method = heap;
 
---
--- Name: exercises; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.exercises (
-    id numeric(12,0),
+CREATE TABLE IF NOT EXISTS public.exercises (
+    id numeric(12,0) PRIMARY KEY,
     name text[],
     description text[],
     type text[]
 );
 
-
-ALTER TABLE public.exercises OWNER TO postgres;
-
---
--- Name: COLUMN exercises.id; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.exercises.id IS 'Идентификационный номер';
-
-
---
--- Name: COLUMN exercises.name; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.exercises.name IS 'Название упражнения';
-
-
---
--- Name: COLUMN exercises.description; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.exercises.description IS 'Описание упражнения';
-
-
---
--- Name: COLUMN exercises.type; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON COLUMN public.exercises.type IS 'Тип упражнения';
-
-
---
--- Name: users; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.users (
-    id integer,
+CREATE TABLE IF NOT EXISTS public.users (
+    id SERIAL PRIMARY KEY,
     exercises integer[],
     info text,
-    chat_id integer
+    chat_id integer UNIQUE
 );
 
-ALTER TABLE public.users OWNER TO postgres;
-
---
--- Name: TABLE users; Type: COMMENT; Schema: public; Owner: postgres
---
+ALTER TABLE public.users
+    ALTER COLUMN chat_id TYPE BIGINT USING (chat_id::BIGINT);
 
 COMMENT ON TABLE public.users IS 'Пользователи';
 
+INSERT INTO public.exercises (id, name, description, type)
+VALUES (3001, '{"Прыжки в длину"}', '{"очень полезное упражнение - мамой клянусь"}', '{Flexible}')
+ON CONFLICT (id) DO NOTHING;
 
---
--- Data for Name: exercises; Type: TABLE DATA; Schema: public; Owner: postgres
---
+INSERT INTO public.exercises (id, name, description, type)
+VALUES (1001, '{"Планка на прямых руках"}', '{"статическая нагрузка мышц груди"}', '{Strength}')
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.exercises VALUES (3001, '{"Прыжки в длину"}', '{"очень полезное упражнение - мамой клянусь"}', '{Flexible}');
-INSERT INTO public.exercises VALUES (1001, '{"Планка на прямых руках"}', '{"статическая нагрузка мышц груди"}', '{Strength}');
-INSERT INTO public.exercises VALUES (1002, '{Отжимания}', '{"упражнение для верхней части тела. Выполняется","когда лицо опущено вниз","и руки отталкивают тело от земли."}', '{Strength}');
-INSERT INTO public.exercises VALUES (1003, '{Приседания}', '{"упражнение для ног и ягодиц",выполняется,"опускаясь в положение","как будто вы садитесь на стул","а затем поднимаетесь."}', '{Strength}');
-INSERT INTO public.exercises VALUES (2001, '{"Бег на месте"}', '{кардиоупражнение,"которое можно выполнять дома","бегая на месте."}', '{Cardio}');
+INSERT INTO public.exercises (id, name, description, type)
+VALUES (1002, '{Отжимания}', '{"упражнение для верхней части тела. Выполняется","когда лицо опущено вниз","и руки отталкивают тело от земли."}', '{Strength}')
+ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO public.exercises (id, name, description, type)
+VALUES (1003, '{Приседания}', '{"упражнение для ног и ягодиц",выполняется,"опускаясь в положение","как будто вы садитесь на стул","а затем поднимаетесь."}', '{Strength}')
+ON CONFLICT (id) DO NOTHING;
 
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
---
+INSERT INTO public.exercises (id, name, description, type)
+VALUES (2001, '{"Бег на месте"}', '{кардиоупражнение,"которое можно выполнять дома","бегая на месте."}', '{Cardio}')
+ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users VALUES (0, '{}', 'admin');
-
-
---
--- Name: exercises exercises_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.exercises
-    ADD CONSTRAINT exercises_id_key UNIQUE (id);
-
-
---
--- Name: users users_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_id_key UNIQUE (id);
-
---
--- PostgreSQL database dump complete
---
-
---
--- PostgreSQL database cluster dump complete
---
+INSERT INTO public.users (exercises, info, chat_id) VALUES (ARRAY[1001, 1002], 'some info', 123456);
