@@ -43,12 +43,12 @@ public class UpdateController {
             
             SendMessage response = new SendMessage();
 
-            if(callbackData.equals("YES_BUTTON")){
+            if (callbackData.equals("YES_BUTTON")) {
             	response.setText("(Тестовое) Вы нажали \"да\"");
             	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
                 bot.sendAnswerMessage(response);
             }
-            else if(callbackData.equals("NO_BUTTON")){
+            else if (callbackData.equals("NO_BUTTON")) {
             	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
             	response.setText("(Тестовое) Вы нажали \"нет\"");
                 bot.sendAnswerMessage(response);
@@ -63,8 +63,8 @@ public class UpdateController {
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
 		response.setText(bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getName() + "\n" +
-				bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription()
-				+ "\n\nДобавить упражнение в вашу тренировку?");
+						bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription()
+							+ "\n\nДобавить упражнение в вашу тренировку?");
 		
 		InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
@@ -100,8 +100,7 @@ public class UpdateController {
 			describeExercise(command, msg);
 		}
 		else {
-			switch(command)
-			{
+			switch(command) {
 			case "/start":
 				registerUser(msg);
 				break;
@@ -115,17 +114,9 @@ public class UpdateController {
 				viewStat();
 				break;
 			}
-		}	
+		}
 	}
-
-	private void sendWelcomeMessage(Message msg) {
-		SendMessage response = new SendMessage();
-		response.setChatId(msg.getChatId().toString());
-		response.setText("Привет! Я бот для контроля за спортивными результатами в тренировках. " +
-				"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
-		bot.sendAnswerMessage(response);
-	}
-
+	
 	public void viewExercises(Message msg) {
 		  SendMessage sendMessage = new SendMessage();
 		  String helpStr = new String();
@@ -143,7 +134,8 @@ public class UpdateController {
 	public void testOutput(Message msg) {
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
-		response.setText("Тестовое сообщение от бота");
+		response.setText("Привет! Я бот для контроля за спортивными результатами в тренировках. " +
+				"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
 		bot.sendAnswerMessage(response);
 		log.debug(msg.getText());
 	}
@@ -169,7 +161,8 @@ public class UpdateController {
 			response.setChatId(chatIdStr);
 			response.setText("Счастилового путешествия в Казахстан");
 			bot.sendAnswerMessage(response);
-		} else {
+		}
+		else {
 			SendMessage response = new SendMessage();
 			response.setChatId(chatIdStr);
 			response.setText("АMOGUS!");
