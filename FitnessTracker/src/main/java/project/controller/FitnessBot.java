@@ -34,17 +34,21 @@ public class FitnessBot extends TelegramLongPollingBot{
 	public FitnessBot(UpdateController controller) {
 		this.controller = controller;
 		Exercises.initialize();
+			
+		List<BotCommand> listOfCommands = new ArrayList<>();
+	        listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
+		listOfCommands.add(new BotCommand("/register", "зарегистрироваться"));
+	        listOfCommands.add(new BotCommand("/tren", "вывод списка доступных упражнений"));
+	        listOfCommands.add(new BotCommand("/test", "тестовая команда"));
+	        listOfCommands.add(new BotCommand("/stat", "ваша статистика"));
+		listOfCommands.add(new BotCommand("/delete", "удаление аккаунта"));
 		
-		List<BotCommand> listofCommands = new ArrayList<>();
-        listofCommands.add(new BotCommand("/start", "уточните график тренеровок"));
-        listofCommands.add(new BotCommand("/tren", "список доступных упражнений"));
-        listofCommands.add(new BotCommand("/test", "тестовая команда"));
-        listofCommands.add(new BotCommand("/stat", "ваша статистика"));
-        try {
-            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
-        } catch (TelegramApiException e) {
-            log.error("Error setting bot's command list: " + e.getMessage());
-        }
+	        try {
+	            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+	        } 
+		catch (TelegramApiException e) {
+	            log.error("Error setting bot's command list: " + e.getMessage());
+	        }
 	}
 	
 	@PostConstruct
