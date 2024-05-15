@@ -97,8 +97,7 @@ public class UpdateController {
 			describeExercise(command, msg);
 		}
 		else {
-			switch(command)
-			{
+			switch(command) {
 			case "/start":
 				sendWelcomeMessage(msg);
 				break;
@@ -131,7 +130,7 @@ public class UpdateController {
 				"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
 		bot.sendAnswerMessage(response);
 	}
-
+	
 	public void viewExercises(Message msg) {
 		  SendMessage sendMessage = new SendMessage();
 		  String helpStr = new String();
@@ -149,7 +148,9 @@ public class UpdateController {
 	public void testOutput(Message msg) {
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
-		response.setText("Тестовое сообщение - Цой жив");
+		response.setText("Привет! Я бот для контроля за спортивными результатами в тренировках. " +
+				"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
+
 		bot.sendAnswerMessage(response);
 		log.debug(msg.getText());
 	}
@@ -216,6 +217,7 @@ public class UpdateController {
 			//response.setText("Регистрация прошла успешно!");
 			response.setText("Счастилового путешествия в Казахстан!");
 			bot.sendAnswerMessage(response);
+
 		} 
 		else {
 			SendMessage response = new SendMessage();
