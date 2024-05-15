@@ -23,39 +23,42 @@ public class FitnessBot extends TelegramLongPollingBot {
 	@Value("${bot.token}")
 	private String token = "7033585733:AAGXgDOBCO3R9lz2XX1HVVGOWR_hcfThNds";
 	private final UpdateController controller;
-	
+
 	@Getter
 	private TrainingLibrary Exercises = new TrainingLibrary();
-	
+
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
-	
+
 	public FitnessBot(UpdateController controller) {
 		this.controller = controller;
 		Exercises.initialize();
-		
 		List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand("/start", "уточните график тренировок"));
-        listOfCommands.add(new BotCommand("/tren", "список доступных упражнений"));
-        listOfCommands.add(new BotCommand("/test", "тестовая команда"));
-        listOfCommands.add(new BotCommand("/stat", "ваша статистика"));
-        try {
-            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
-        }
+	        listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
+		listOfCommands.add(new BotCommand("/register", "зарегистрироваться"));
+	        listOfCommands.add(new BotCommand("/tren", "вывод списка доступных упражнений"));
+	        listOfCommands.add(new BotCommand("/test", "тестовая команда"));
+	        listOfCommands.add(new BotCommand("/stat", "ваша статистика"));
+		listOfCommands.add(new BotCommand("/delete", "удаление аккаунта"));
+
+	        try {
+	            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+	        } 
 		catch (TelegramApiException e) {
-            log.error("Error setting bot's command list: " + e.getMessage());
-        }
+	            log.error("Error setting bot's command list: " + e.getMessage());
+	        }
 	}
-	
+
+
 	@PostConstruct
 	public void init () {
 		controller.registerBot(this);
 	}
-	
-	@Override 
+
+	@Override
 	public String getBotUsername() {
 		return name;
 	}
-	
+
 	@Override
 	public String getBotToken() {
 		return token;
@@ -65,7 +68,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 	public void onUpdateReceived(Update update) {
 		controller.processUpdate(update);
 	}
-	
+
     public void sendAnswerMessage(SendMessage message) {
         if (message != null) {
             try {
