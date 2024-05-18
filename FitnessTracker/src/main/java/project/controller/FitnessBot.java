@@ -19,9 +19,9 @@ import org.apache.log4j.Logger;
 @Component
 public class FitnessBot extends TelegramLongPollingBot {
 	@Value("${bot.name}")
-	private String name = "FitTrackDomovonokBot";
+	private String name;
 	@Value("${bot.token}")
-	private String token = "7033585733:AAGXgDOBCO3R9lz2XX1HVVGOWR_hcfThNds";
+	private String token;
 	private final UpdateController controller;
 
 	@Getter
@@ -41,7 +41,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 		listOfCommands.add(new BotCommand("/delete", "удаление аккаунта"));
 
 	        try {
-	            this.execute(new SetMyCommands(listofCommands, new BotCommandScopeDefault(), null));
+	            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
 	        } 
 		catch (TelegramApiException e) {
 	            log.error("Error setting bot's command list: " + e.getMessage());

@@ -58,10 +58,11 @@ public class UpdateController {
 	
 	private void describeExercise(String command, Message msg) {
 		SendMessage response = new SendMessage();
+		String text = new String();
+		text = bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getName() + "\n";
+		text += bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription() + "\n\nДобавить упражнение в вашу тренировку?";
 		response.setChatId(msg.getChatId().toString());
-		response.setText(bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getName() + "\n" +
-						bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription()
-							+ "\n\nДобавить упражнение в вашу тренировку?");
+		response.setText(text);
 		
 		InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
