@@ -52,7 +52,7 @@ public class UpdateController {
                 try {
                     bot.execute(deleteMessage);
                 } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
+					log.error("Cannot delete message: " + update.getCallbackQuery().getData());
                 }
             } else {
 				log.error("Unsupported message type is received: " + update.getCallbackQuery().getData());
@@ -88,13 +88,20 @@ public class UpdateController {
 
         markupInLine.setKeyboard(rowsInLine);
         response.setReplyMarkup(markupInLine);
-		
+
+		DeleteMessage deleteMessage = new DeleteMessage();
+		deleteMessage.setChatId(msg.getChatId());
+		deleteMessage.setMessageId(msg.getMessageId());
+		try {
+			bot.execute(deleteMessage);
+		} catch (TelegramApiException e) {
+			log.error("Cannot delete message: " + msg);
+		}
 		bot.sendAnswerMessage(response);
 		log.debug(msg.getText());
 	}
 	
 	private void defineCommand(Message msg) {
-        
 		String command = msg.getText();
 		
 		if (command.contains("/start ")) {
