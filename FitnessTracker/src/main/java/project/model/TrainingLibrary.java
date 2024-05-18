@@ -21,7 +21,11 @@ public final class TrainingLibrary extends Training {
 			while (resultSet.next()) {
 				int id = resultSet.getInt("id");
 				String name = resultSet.getString("name");
+				name = name.substring(1,name.length()-1);
+				name = name.replaceAll("\"", "");
 				String description = resultSet.getString("description");
+				description = description.substring(2,description.length()-2);
+				description = description.replaceAll("\"", "");
 
 				exerciseMap.put(id, new FlexibleExercise(name, description, id));
 			}

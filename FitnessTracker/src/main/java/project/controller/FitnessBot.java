@@ -42,8 +42,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 
 	        try {
 	            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
-	        } 
-		catch (TelegramApiException e) {
+	        } catch (TelegramApiException e) {
 	            log.error("Error setting bot's command list: " + e.getMessage());
 	        }
 	}

@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.model.Exercise;
 
 @Component
@@ -37,21 +39,23 @@ public class UpdateController {
 		}
 		else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
-            
             SendMessage response = new SendMessage();
 
-            if (callbackData.equals("YES_BUTTON")) {
+            if (callbackData.contains("YES_BUTTON")) {
             	response.setText("(Тестовое) Вы нажали \"да\"");
             	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
                 bot.sendAnswerMessage(response);
-            }
-            else if (callbackData.equals("NO_BUTTON")) {
-            	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
-            	response.setText("(Тестовое) Вы нажали \"нет\"");
-                bot.sendAnswerMessage(response);
-            }
-			else {
-			log.error("Unsupported message type is received: " + update);
+            } else if (callbackData.contains("NO_BUTTON")) {
+				DeleteMessage deleteMessage = new DeleteMessage();
+				deleteMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
+				deleteMessage.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
+                try {
+                    bot.execute(deleteMessage);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+				log.error("Unsupported message type is received: " + update.getCallbackQuery().getData());
             }
 		}
 	}
@@ -70,7 +74,7 @@ public class UpdateController {
         InlineKeyboardButton yesButton = new InlineKeyboardButton();
 
         yesButton.setText("Да");
-        yesButton.setCallbackData("YES_BUTTON");
+        yesButton.setCallbackData("YES_BUTTON" + command);
 
         InlineKeyboardButton noButton = new InlineKeyboardButton();
 
@@ -96,8 +100,7 @@ public class UpdateController {
 		if (command.contains("/start ")) {
 			command = command.replaceAll("/start ", "");
 			describeExercise(command, msg);
-		}
-		else {
+		} else {
 			switch(command) {
 			case "/start":
 				sendWelcomeMessage(msg);
