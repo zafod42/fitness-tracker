@@ -47,7 +47,6 @@ public class FitnessBot extends TelegramLongPollingBot {
 		}
 	}
 
-
 	@PostConstruct
 	public void init () {
 		controller.registerBot(this);

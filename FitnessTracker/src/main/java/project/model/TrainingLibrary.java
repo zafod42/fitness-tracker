@@ -1,5 +1,4 @@
 package project.model;
-import lombok.AccessLevel;
 import lombok.Getter;
 
 import java.sql.*;
@@ -7,7 +6,7 @@ import java.util.HashMap;
 
 public final class TrainingLibrary extends Training {
 	@Getter
-	private HashMap<Integer, Exercise> exerciseMap = new HashMap<>();
+	private final HashMap<Integer, Exercise> exerciseMap = new HashMap<>();
 	
 	public void initialize() {
 		String url = "jdbc:postgresql://localhost:5432/template1";
