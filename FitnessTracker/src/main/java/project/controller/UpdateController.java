@@ -1,14 +1,13 @@
 package project.controller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
-import lombok.var;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -19,7 +18,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.model.Exercise;
-import project.model.TrainingLibrary;
 
 @Component
 public class UpdateController {
@@ -99,13 +97,65 @@ public class UpdateController {
 		}
 	}
 	//commands:
-	// /start and /test commands implementation
+	// /start implementation
 	private void sendWelcomeMessage(Message msg) {
+		Long chatId = msg.getChatId();
+
 		SendMessage response = new SendMessage();
-		response.setChatId(msg.getChatId().toString());
-		response.setText("Привет! Я бот для контроля за спортивными результатами в тренировках. " +
-				"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
-		bot.sendAnswerMessage(response);
+		response.setChatId(chatId);
+
+		List<Long> userIds = jdbcTemplate.queryForList("SELECT id FROM users WHERE chat_id =?", new Object[]{chatId}, Long.class);
+
+		if (userIds.isEmpty()) {
+			response.setText("Привет! Я бот для контроля за спортивными результатами в тренировках. " +
+					"Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
+			bot.sendAnswerMessage(response);
+		} else {
+			String text = new String();
+			text = "Хотите начать тренировку?\nВаша тренировка состоит из:\n";
+			//Integer[] exerciseIds = jdbcTemplate.queryForObject("SELECT array_agg(exercises) FROM users WHERE chat_id =?", Integer[].class, chatId);
+
+			String sql = "SELECT exercises FROM users WHERE chat_id = ?";
+
+			List<Integer> exerciseIds = jdbcTemplate.queryForObject(sql, new Object[]{chatId}, new RowMapper<List<Integer>>() {
+				@Override
+				public List<Integer> mapRow(ResultSet rs, int rowNum) throws SQLException {
+					Integer[] exercises = (Integer[]) rs.getArray("exercises").getArray();
+					return Arrays.asList(exercises);
+				}
+			});
+
+			//Integer[] exerciseIds = exerciseIdsList.toArray(new Integer[0]);
+			for (Integer Id: exerciseIds) {
+				text += bot.getExercises().getExerciseMap().get(Id).getName().toString() + "\n";
+			}
+			response.setText(text);
+
+			InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+			List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+			InlineKeyboardButton startButton = new InlineKeyboardButton();
+
+			startButton.setText("Начать сейчас");
+			startButton.setCallbackData("START_BUTTON");
+
+			InlineKeyboardButton timeButton = new InlineKeyboardButton();
+			timeButton.setText("Начать в заданное время");
+			timeButton.setCallbackData("TIME_BUTTON");
+
+			InlineKeyboardButton noButton = new InlineKeyboardButton();
+
+			noButton.setText("Отмена");
+			noButton.setCallbackData("NO_BUTTON");
+
+			rowsInLine.add(new ArrayList<InlineKeyboardButton>(Collections.singletonList(startButton)));
+			rowsInLine.add(new ArrayList<InlineKeyboardButton>(Collections.singletonList(timeButton)));
+			rowsInLine.add(new ArrayList<InlineKeyboardButton>(Collections.singletonList(noButton)));
+
+			markupInLine.setKeyboard(rowsInLine);
+			response.setReplyMarkup(markupInLine);
+			bot.sendAnswerMessage(response);
+		}
+
 	}
 
 	// /register implementation
