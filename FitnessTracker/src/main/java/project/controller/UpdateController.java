@@ -277,7 +277,7 @@ public class UpdateController {
 	private void confirmAccountDeletion(Message msg) {
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId().toString());
-		response.setText("Вы уверены, что хотите удалить свой аккаунт? Отправьте 'Подтверждаю удаление' для подтверждения.");
+		response.setText("Вы уверены, что хотите удалить свой аккаунт? Отправьте 'ПОДТВЕРЖДАЮ УДАЛЕНИЕ' для подтверждения.");
 		bot.sendAnswerMessage(response);
 	}
 
