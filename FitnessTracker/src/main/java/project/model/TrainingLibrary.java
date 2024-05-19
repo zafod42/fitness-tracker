@@ -1,4 +1,5 @@
 package project.model;
+import lombok.AccessLevel;
 import lombok.Getter;
 
 import java.sql.*;

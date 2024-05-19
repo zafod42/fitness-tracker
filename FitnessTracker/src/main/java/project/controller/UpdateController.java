@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.var;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,6 +19,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.model.Exercise;
+import project.model.TrainingLibrary;
 
 @Component
 public class UpdateController {
@@ -36,15 +38,48 @@ public class UpdateController {
 		
 		if (update.hasMessage()) {
 			defineCommand(update.getMessage());
-		}
-		else if (update.hasCallbackQuery()) {
+		} else if (update.hasCallbackQuery()) {
             String callbackData = update.getCallbackQuery().getData();
             SendMessage response = new SendMessage();
 
             if (callbackData.contains("YES_BUTTON")) {
-            	response.setText("(Тестовое) Вы нажали \"да\"");
-            	response.setChatId(update.getCallbackQuery().getMessage().getChatId());
-                bot.sendAnswerMessage(response);
+				log.debug(callbackData.toString());
+				String chatIdStr = update.getCallbackQuery().getMessage().getChatId().toString();
+				Long chatId = Long.parseLong(chatIdStr);
+
+				List<Long> userIds = jdbcTemplate.queryForList("SELECT id FROM users WHERE chat_id =?",
+						new Object[]{chatId}, Long.class);
+
+				if (!userIds.isEmpty()) {
+					Integer exerciseId = Integer.valueOf(callbackData.substring(callbackData.length()-4));
+					Exercise exercise;
+					Boolean isExerciseInTraining;
+
+					try {
+						exercise = bot.getExercises().getExerciseMap().get(exerciseId);
+						isExerciseInTraining = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users WHERE chat_id = ? AND ? = ANY(exercises)",
+								Boolean.class, chatId, exerciseId);
+					} catch (NullPointerException e) {
+						exercise = null;
+						isExerciseInTraining = false;
+					}
+
+					if (exercise == null) {
+						log.error("Exercise " + exerciseId.toString() + " not found");
+					} else if (isExerciseInTraining) {
+						response.setText("Это упражнение уже присутствует в вашей тренировке.");
+						response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+						bot.sendAnswerMessage(response);
+					} else {
+						jdbcTemplate.update("UPDATE users SET exercises = array_append(exercises, ?) WHERE chat_id = ?",
+								exerciseId, chatId);
+						response.setText("Теперь это упражнение в вашей тренировке.");
+						response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+						bot.sendAnswerMessage(response);
+					}
+				}
+
+
             } else if (callbackData.contains("NO_BUTTON")) {
 				DeleteMessage deleteMessage = new DeleteMessage();
 				deleteMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
@@ -98,11 +133,11 @@ public class UpdateController {
 			log.error("Cannot delete message: " + msg);
 		}
 		bot.sendAnswerMessage(response);
-		log.debug(msg.getText());
 	}
 	
 	private void defineCommand(Message msg) {
 		String command = msg.getText();
+		log.debug(command);
 		
 		if (command.contains("/start ")) {
 			command = command.replaceAll("/start ", "");
