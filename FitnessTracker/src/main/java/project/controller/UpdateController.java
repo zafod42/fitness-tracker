@@ -3,6 +3,7 @@ package project.controller;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.io.*;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.model.Exercise;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @Component
 public class UpdateController {
@@ -267,6 +271,10 @@ public class UpdateController {
 				response.setChatId(chatIdStr);
 				response.setText(statMessage.toString());
 				bot.sendAnswerMessage(response);
+
+				exportToCSV(chatId, results);
+
+				exportToXLS(chatId, results);
 			}
 			else {
 				SendMessage response = new SendMessage();
@@ -282,6 +290,59 @@ public class UpdateController {
 			response.setText("Произошла ошибка при получении статистики.");
 			bot.sendAnswerMessage(response);
 		}
+	}
+
+	// export to CSV
+	private void exportToCSV(Long chatId, List<Map<String, Object>> results) {
+		String fileName = "Статистика_" + chatId + ".csv";
+		try (FileWriter writer = new FileWriter(fileName)) {
+			writer.write("Упражнение ID,Информация\n");
+			for (Map<String, Object> row : results) {
+				Integer[] exercises = (Integer[]) row.get("exercises");
+				String info = (String) row.get("info");
+
+				for (Integer exerciseId : exercises) {
+					writer.write(exerciseId + "," + info + "\n");
+				}
+			}
+			System.out.println("Статистика экспортирован в CSV успешно!");
+		} catch (IOException e) {
+			log.error("Произошла ошибка при экспорте статистики в CSV: " + e.getMessage());
+		}
+	}
+
+	// export to XLS
+	private void exportToXLS(Long chatId, List<Map<String, Object>> results) throws IOException {
+		String fileName = "Статистика_" + chatId + ".xlsx";
+		Workbook workbook = new XSSFWorkbook();
+		Sheet sheet = workbook.createSheet("Статистика");
+
+		Row headerRow = sheet.createRow(0);
+		Cell headerCell = headerRow.createCell(0);
+		headerCell.setCellValue("Упражнение ID");
+		headerCell = headerRow.createCell(1);
+		headerCell.setCellValue("Информация");
+
+		int rowNum = 1;
+		for (Map<String, Object> row : results) {
+			Integer[] exercises = (Integer[]) row.get("exercises");
+			String info = (String) row.get("info");
+
+			Row dataRow = sheet.createRow(rowNum++);
+			for (int i = 0; i < exercises.length; i++) {
+				Cell cell = dataRow.createCell(i);
+				cell.setCellValue(exercises[i]);
+			}
+			dataRow.getCell(dataRow.getLastCellNum() - 1).setCellValue(info);
+		}
+
+		try (FileOutputStream outputStream = new FileOutputStream(fileName)) {
+			workbook.write(outputStream);
+		} finally {
+			workbook.close();
+		}
+
+		System.out.println("Статистика экспортирована в XLS успешно!");
 	}
 
 	//YES_BUTTON implementation
