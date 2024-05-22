@@ -83,7 +83,7 @@ public class UpdateController {
 			command = command.replaceAll("/start ", "");
 			describeExercise(command, msg);
 		} 
-		else if (command.startsWith("/startExercise")) {
+		else if (command.startsWith("/start_exercise")) {
 			startExercise(command, msg);
 		} 
 		else {
@@ -109,10 +109,10 @@ public class UpdateController {
 				case "ПОДТВЕРДИТЬ УДАЛЕНИЕ":
 					deleteUser(msg);
 					break;
-				case "/stop":
+				case "/stop_exercise":
 					stopExercise(msg);
 					break;
-				case "/finishSet":
+				case "/finish_set":
 					finishSet(msg);
 					break;
 				default:
