@@ -28,6 +28,8 @@ import org.springframework.jdbc.core.RowMapper;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.print.DocFlavor;
+
 
 @Component
 public class UpdateController {
@@ -85,7 +87,13 @@ public class UpdateController {
 		} 
 		else if (command.startsWith("/start_exercise")) {
 			startExercise(command, msg);
-		} 
+		}
+		else if (command.startsWith("/create_exercise")) {
+			createExercise(command, msg);
+		}
+		else if (command.startsWith("/delete_exercise")) {
+			deleteExercise(command, msg);
+		}
 		else {
 			switch (command) {
 				case "/start":
@@ -485,6 +493,43 @@ public class UpdateController {
 			response.enableHtml(true);
 			bot.sendAnswerMessage(response);
 		}
+	}
+
+	// CRUD Region
+	private void createExercise(String command, Message msg)
+	{
+		Long chatId = msg.getChatId();
+		SendMessage response = new SendMessage();
+		System.out.println("Метод createExercise (/create_exercise,[Название,Описание]) вызван");
+		log.debug(msg.getText());
+
+		String[] parts = command.split(",");
+		String name = parts[1];
+		String description = parts[2];
+		String type = "Flexible";
+		String sql="INSERT INTO exercises (name,description, type) VALUES (?,?,?)";
+		jdbcTemplate.update(sql, name, description, type);
+		response.setChatId(chatId);
+		response.setText("Добавлено упражнение " + name + " " + description + " " + type);
+		bot.sendAnswerMessage(response);
+	}
+
+	private void deleteExercise(String command, Message msg)
+	{
+		Long chatId = msg.getChatId();
+		SendMessage response = new SendMessage();
+		System.out.println("Метод deleteExercise (/delete_exercise,[Название]) вызван");
+		log.debug(msg.getText());
+
+		String[] parts = command.split(",");
+		String name = parts[1];
+
+		String sql = "DELETE FROM exercises WHERE name = ?";
+		jdbcTemplate.update(sql, name);
+		response.setChatId(chatId);
+		response.setText("Упражнение удалено");
+		bot.sendAnswerMessage(response);
+
 	}
 
 }
