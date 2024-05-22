@@ -19,6 +19,7 @@ public class WeightExercise implements Exercise {
     private int repetitions; // Количество повторений
     private static int idCounter = 1;
     private int currentSet = 0;
+    @Getter
     private boolean isRunning = false; // Статус выполнения упражнения
 
 

@@ -19,6 +19,7 @@ public class TimeExercise implements Exercise {
     @Getter
     private int sets; // Количество подходов/повторений
     private static int idCounter = 1;
+    @Getter
     private boolean isRunning = false;
 
     public TimeExercise(String name, String description, int sets, float timeInSeconds) {
