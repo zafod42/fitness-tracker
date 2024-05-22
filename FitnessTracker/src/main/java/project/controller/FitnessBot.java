@@ -23,7 +23,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 	@Value("${bot.name}")
 	private String name;
 	@Value("${bot.token}")
-	private String token";
+	private String token;
 
 	private final UpdateController controller;
 
@@ -43,7 +43,9 @@ public class FitnessBot extends TelegramLongPollingBot {
 		listOfCommands.add(new BotCommand("/start_exercise", "начать упражнение"));
 		listOfCommands.add(new BotCommand("/finish_set", "закончить подход"));
 		listOfCommands.add(new BotCommand("/stop_exercise", "досрочно завершить упражнение"));
-
+		listOfCommands.add(new BotCommand("/create_exercise", "создать упражнение"));
+		listOfCommands.add(new BotCommand("/update_exercise", "изменить упражнение"));
+		listOfCommands.add(new BotCommand("/delete_exercise", "удалить упражнение"));
 		try {
             		this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         	}
