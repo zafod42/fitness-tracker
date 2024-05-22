@@ -40,7 +40,6 @@ public class FitnessBot extends TelegramLongPollingBot {
         	listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
 		listOfCommands.add(new BotCommand("/register", "зарегистрироваться"));
         	listOfCommands.add(new BotCommand("/tren", "вывод списка доступных упражнений"));
-        	listOfCommands.add(new BotCommand("/test", "тестовая команда"));
         	listOfCommands.add(new BotCommand("/stat", "ваша статистика"));
 		listOfCommands.add(new BotCommand("/start_exercise", "начать упражнение"));
 		listOfCommands.add(new BotCommand("/finish_set", "закончить подход"));
