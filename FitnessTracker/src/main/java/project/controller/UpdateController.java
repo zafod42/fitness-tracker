@@ -97,12 +97,6 @@ public class UpdateController {
 				case "/tren":
 					viewExercises(msg);
 					break;
-				case "/test":
-					testOutput(msg);
-					break;
-				case "/stat":
-					viewStat(msg);
-					break;
 				case "/delete":
 					confirmAccountDeletion(msg);
 					break;
