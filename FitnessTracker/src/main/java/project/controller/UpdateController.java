@@ -33,15 +33,13 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class UpdateController {
 
 	private FitnessBot bot;
-	private Map<Long, OrdinaryExercise> activeOrdinaryExercises = new HashMap<>();
-	private Map<Long, TimeExercise> activeTimeExercises = new HashMap<>();
-	private Map<Long, WeightExercise> activeWeightExercises = new HashMap<>();
+	private Map<Long, Queue<Exercise>> activeExercises = new HashMap<>();
 
 	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
 
 	public void registerBot(FitnessBot bot) {
         this.bot = bot;
-        }
+	}
 
 	public void processUpdate(Update update) {
 		if (update == null) {
@@ -69,6 +67,26 @@ public class UpdateController {
 					log.error("Cannot delete message: " + update.getCallbackQuery().getData());
 				}
 			}
+			else if (callbackData.contains("START_BUTTON")) {
+				Long chatId = update.getCallbackQuery().getMessage().getChatId();
+
+				String sql = "SELECT exercises FROM users WHERE chat_id = ?";
+
+				List<Integer> exerciseIds = jdbcTemplate.queryForObject(sql, new Object[]{chatId}, new RowMapper<List<Integer>>() {
+					@Override
+					public List<Integer> mapRow(ResultSet rs, int rowNum) throws SQLException {
+						Integer[] exercises = (Integer[]) rs.getArray("exercises").getArray();
+						return Arrays.asList(exercises);
+					}
+				});
+
+				Queue<Exercise> exercises = new LinkedList<>();
+				for (Integer exerciseId : exerciseIds) {
+					exercises.add(bot.getExercises().getExerciseMap().get(exerciseId));
+				}
+				exercises.peek().startExercise(chatId, bot);
+				activeExercises.put(chatId, exercises);
+			}
 			else {
 				log.error("Unsupported message type is received: " + update.getCallbackQuery().getData());
 			}
@@ -85,7 +103,7 @@ public class UpdateController {
 		} 
 		else if (command.startsWith("/start_exercise")) {
 			startExercise(command, msg);
-		} 
+		}
 		else {
 			switch (command) {
 				case "/start":
@@ -135,7 +153,6 @@ public class UpdateController {
 		else {
 			String text = new String();
 			text = "Хотите начать тренировку?\nВаша тренировка состоит из:\n";
-			//Integer[] exerciseIds = jdbcTemplate.queryForObject("SELECT array_agg(exercises) FROM users WHERE chat_id =?", Integer[].class, chatId);
 
 			String sql = "SELECT exercises FROM users WHERE chat_id = ?";
 
@@ -147,7 +164,6 @@ public class UpdateController {
 				}
 			});
 
-			//Integer[] exerciseIds = exerciseIdsList.toArray(new Integer[0]);
 			for (Integer Id: exerciseIds) {
 				text += bot.getExercises().getExerciseMap().get(Id).getName().toString() + "\n";
 			}
@@ -303,21 +319,12 @@ public class UpdateController {
 			int exerciseId = Integer.parseInt(parts[1]);
 			Exercise startedExercise = bot.getExercises().getExerciseMap().get(exerciseId);
 			if (startedExercise!= null) {
-				if (startedExercise instanceof OrdinaryExercise) {
-					activeOrdinaryExercises.put(msg.getChatId(), (OrdinaryExercise) startedExercise);
-					System.out.println("Обычное упражнение добавлено в activeExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
+				if (activeExercises.get(msg.getChatId()) == null) {
+					activeExercises.put(msg.getChatId(), new LinkedList<Exercise>());
 				}
-				else if (startedExercise instanceof TimeExercise) {
-					activeTimeExercises.put(msg.getChatId(), (TimeExercise) startedExercise);
-					System.out.println("Упражнение на время добавлено в activeTimeExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
-				}
-				else if (startedExercise instanceof WeightExercise) {
-					activeWeightExercises.put(msg.getChatId(), (WeightExercise) startedExercise);
-					System.out.println("Упражнение с весом добавлено в activeWeightExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
-				}
+				activeExercises.get(msg.getChatId()).add(startedExercise);
+				System.out.println(startedExercise.getClass().toString() + " упражнение добавлено в activeExercises для чата: " + msg.getChatId());
+				startedExercise.startExercise(msg.getChatId(), bot);
 			}
 			else {
 				throw new IllegalArgumentException("Exercise not found");
@@ -345,22 +352,33 @@ public class UpdateController {
 		log.debug(msg.getText());
 
 		long chatId = msg.getChatId();
-		OrdinaryExercise ordinaryExercise = activeOrdinaryExercises.get(chatId);
-		WeightExercise weightExercise = activeWeightExercises.get(chatId);
+		Exercise currentExercise = activeExercises.get(chatId).peek();
+
 		SendMessage response = new SendMessage();
 
-		if (ordinaryExercise!= null) {
+		if (currentExercise!= null && currentExercise.getClass().equals(OrdinaryExercise.class)) {
 			System.out.println("Текущий подход для обычного упражнения из чата " + chatId + " завершено");
-			ordinaryExercise.finishSet(chatId, bot);
+			((OrdinaryExercise) currentExercise).finishSet(chatId, bot);
 		}
-		else if (weightExercise!= null) {
+		else if (currentExercise!= null && currentExercise.getClass().equals(WeightExercise.class)) {
 			System.out.println("Текущий подход для упражнения с весом из чата " + chatId + " завершено");
-			weightExercise.finishSet(chatId, bot);
+			((WeightExercise) currentExercise).finishSet(chatId, bot);
 		}
 		else {
 			response.setText("Упражнение не запущено.");
 			System.out.println("Активное упражнение из чата " + chatId + " не найдено");
 			bot.sendAnswerMessage(response);
+		}
+
+		if (!currentExercise.isRunning()) {
+			activeExercises.get(chatId).remove();
+			if (activeExercises.get(chatId).peek() != null) {
+				activeExercises.get(chatId).peek().startExercise(chatId, bot);
+			} else {
+				response.setText("ПОЗДРАВЛЯЕМ! ВЫ ЗАВЕРШИЛИ ТРЕНИРОВКУ!");
+				System.out.println("Тренировка пользователя " + chatId + " завершена");
+				bot.sendAnswerMessage(response);
+			}
 		}
 	}
 
@@ -370,21 +388,11 @@ public class UpdateController {
 		log.debug(msg.getText());
 
 		long chatId = msg.getChatId();
-		OrdinaryExercise ordinaryExercise = activeOrdinaryExercises.remove(chatId);
-		WeightExercise weightExercise = activeWeightExercises.remove(chatId);
-		TimeExercise timeExercise = activeTimeExercises.remove(chatId);
+		Exercise stopedExercise = activeExercises.get(chatId).remove();
 
-		if (ordinaryExercise != null) {
-			ordinaryExercise.stopExercise(chatId, bot);
+		if (stopedExercise != null) {
+			stopedExercise.stopExercise(chatId, bot);
 			System.out.println("Обычное упражнение остановлено и удалено из activeOrdinaryExercises для чата: " + chatId);
-		}
-		else if (weightExercise != null) {
-			weightExercise.stopExercise(chatId, bot);
-			System.out.println("Упражнение с весом остановлено и удалено из activeWeightExercises для чата: " + chatId);
-		}
-		else if (timeExercise != null) {
-			timeExercise.stopExercise(chatId, bot);
-			System.out.println("Упражнение с на время остановлено и удалено из activeWeightExercises для чата: " + chatId);
 		}
 		else {
 			System.out.println("Активное упражнение из чата: " + chatId + " не найдено");
