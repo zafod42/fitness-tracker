@@ -8,7 +8,7 @@ import project.controller.FitnessBot;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class TimeExercise implements Exercise {
+public class TimeExercise extends Exercise {
     private Integer id;
     @Getter
     private String name;

@@ -2,14 +2,23 @@ package project.model;
 
 import project.controller.FitnessBot;
 
-public interface Exercise {
+//NOTE: Паттерн Стратегия?
 
-	String getName();
-	String getDescription();
-	Integer getExerciseId();
-	int getSets();
-	int getRepetitions();
-	float getWeightPerRep();
-	float getTimeInSeconds();
-	void startExercise(long chatId, FitnessBot bot);
+public abstract class Exercise {
+
+	public abstract String getName();
+	public abstract String getDescription();
+	abstract Integer getExerciseId();
+	abstract int getSets();
+	abstract int getRepetitions();
+	abstract float getWeightPerRep();
+	abstract float getTimeInSeconds();
+
+	// IDEA:
+	// Вставить обычный вызов статистики в startExercise
+	// И расширить метод вызовом его стандартной + спец. версии
+	abstract void startExercise(long chatId, FitnessBot bot);
+
+
+	// Либо придется вызывать статистику в каждом BlablaExercise отдельно
 }

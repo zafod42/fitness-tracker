@@ -1,4 +1,5 @@
 package project.controller;
+import lombok.Synchronized;
 import project.model.*;
 
 import lombok.Getter;
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import javax.annotation.PostConstruct;
 
 @Component
@@ -26,7 +28,6 @@ public class FitnessBot extends TelegramLongPollingBot {
 	private String token;
 
 	private final UpdateController controller;
-
 	@Getter
 	private TrainingLibrary Exercises = new TrainingLibrary();
 
@@ -34,7 +35,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 
 	public FitnessBot(UpdateController controller) {
 		this.controller = controller;
-		Exercises.initialize();
+        Exercises.initialize();
 
 		List<BotCommand> listOfCommands = new ArrayList<>();
         	listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
@@ -46,6 +47,7 @@ public class FitnessBot extends TelegramLongPollingBot {
 		listOfCommands.add(new BotCommand("/create_exercise", "создать упражнение"));
 		listOfCommands.add(new BotCommand("/update_exercise", "изменить упражнение"));
 		listOfCommands.add(new BotCommand("/delete_exercise", "удалить упражнение"));
+		listOfCommands.add(new BotCommand("/toggle_notification", "переключить уведомления"));
 		try {
             		this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         	}
@@ -84,4 +86,21 @@ public class FitnessBot extends TelegramLongPollingBot {
             }
         }
     }
+
+    public void sendMsg(String chatId, String msg)
+	{
+		SendMessage sendMessage = new SendMessage();
+		sendMessage.enableMarkdown(true);
+		sendMessage.setChatId(chatId);
+		sendMessage.setText(msg);
+		try
+		{
+			execute(sendMessage);
+		} catch(TelegramApiException e)
+		{
+			log.error(e);
+		}
+
+	}
+
 }

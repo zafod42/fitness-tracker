@@ -131,4 +131,4 @@ INSERT INTO public.weightExercise (id, name, description, sets, repetitions, wei
 VALUES (3002, '{"Подъём гантели"}', '{"чтоб бицуху качать"}', 6, 10, 10.0, '{Weight}')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.users (exercises, info, chat_id) VALUES (ARRAY[1001, 1002], 'some info', 123456);
+INSERT INTO public.users (exercises, info, chat_id) VALUES (ARRAY[1001, 1002], 'some info', 123453);

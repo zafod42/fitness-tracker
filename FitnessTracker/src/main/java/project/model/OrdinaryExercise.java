@@ -6,7 +6,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.controller.FitnessBot;
 
 
-public class OrdinaryExercise implements Exercise {
+public class OrdinaryExercise extends Exercise {
 	private Integer id;
 	@Getter
 	private String name;

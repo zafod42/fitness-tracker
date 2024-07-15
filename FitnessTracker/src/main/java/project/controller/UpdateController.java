@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.io.*;
+
 import project.model.*;
 
 import org.apache.log4j.Logger;
@@ -39,7 +40,10 @@ public class UpdateController {
 	private Map<Long, TimeExercise> activeTimeExercises = new HashMap<>();
 	private Map<Long, WeightExercise> activeWeightExercises = new HashMap<>();
 
-	private static final Logger log = org.apache.log4j.Logger.getLogger(FitnessBot.class);
+	private static final Logger log = Logger.getLogger(FitnessBot.class);
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	public void registerBot(FitnessBot bot) {
         this.bot = bot;
@@ -117,6 +121,9 @@ public class UpdateController {
 				case "/finish_set":
 					finishSet(msg);
 					break;
+				case "/toggle_notification":
+					toggleNotification(msg);
+					break;
 				default:
 					SendMessage response = new SendMessage();
 					response.setChatId(msg.getChatId().toString());
@@ -141,23 +148,30 @@ public class UpdateController {
 			bot.sendAnswerMessage(response);
 		}
 		else {
-			String text = new String();
+			String text;
 			text = "Хотите начать тренировку?\nВаша тренировка состоит из:\n";
 			//Integer[] exerciseIds = jdbcTemplate.queryForObject("SELECT array_agg(exercises) FROM users WHERE chat_id =?", Integer[].class, chatId);
-
+			List<Integer> exerciseIds = new ArrayList<>();
 			String sql = "SELECT exercises FROM users WHERE chat_id = ?";
-
-			List<Integer> exerciseIds = jdbcTemplate.queryForObject(sql, new Object[]{chatId}, new RowMapper<List<Integer>>() {
-				@Override
-				public List<Integer> mapRow(ResultSet rs, int rowNum) throws SQLException {
-					Integer[] exercises = (Integer[]) rs.getArray("exercises").getArray();
-					return Arrays.asList(exercises);
-				}
-			});
-
+			try {
+				exerciseIds = jdbcTemplate.queryForObject(sql, new Object[]{chatId}, new RowMapper<List<Integer>>() {
+					@Override
+					public List<Integer> mapRow(ResultSet rs, int rowNum) throws SQLException {
+						Integer[] exercises = (Integer[]) rs.getArray("exercises").getArray();
+						return Arrays.asList(exercises);
+					}
+				});
+			} catch (NullPointerException e)
+			{
+				log.error(e);
+				response.setText("Ваша тренировка пуста. Отправьте команду /tren, чтобы посмотреть доступные упражнения.");
+				bot.sendAnswerMessage(response);
+				return;
+			}
 			//Integer[] exerciseIds = exerciseIdsList.toArray(new Integer[0]);
-			for (Integer Id: exerciseIds) {
-				text += bot.getExercises().getExerciseMap().get(Id).getName().toString() + "\n";
+            assert exerciseIds != null;
+            for (Integer Id: exerciseIds) {
+				text += bot.getExercises().getExerciseMap().get(Id).getName() + "\n";
 			}
 			response.setText(text);
 
@@ -245,8 +259,6 @@ public class UpdateController {
 		bot.sendAnswerMessage(response);
 	}
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
 
 	// Регистрация пользователя - заносит человека в базу данных
 	public void registerUser(Message msg) {
@@ -314,17 +326,17 @@ public class UpdateController {
 				if (startedExercise instanceof OrdinaryExercise) {
 					activeOrdinaryExercises.put(msg.getChatId(), (OrdinaryExercise) startedExercise);
 					System.out.println("Обычное упражнение добавлено в activeExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
+					((OrdinaryExercise) startedExercise).startExercise(msg.getChatId(), bot);
 				}
 				else if (startedExercise instanceof TimeExercise) {
 					activeTimeExercises.put(msg.getChatId(), (TimeExercise) startedExercise);
 					System.out.println("Упражнение на время добавлено в activeTimeExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
+					((TimeExercise) startedExercise).startExercise(msg.getChatId(), bot);
 				}
 				else if (startedExercise instanceof WeightExercise) {
 					activeWeightExercises.put(msg.getChatId(), (WeightExercise) startedExercise);
 					System.out.println("Упражнение с весом добавлено в activeWeightExercises для чата: " + msg.getChatId());
-					startedExercise.startExercise(msg.getChatId(), bot);
+					((WeightExercise) startedExercise).startExercise(msg.getChatId(), bot);
 				}
 			}
 			else {
@@ -500,9 +512,10 @@ public class UpdateController {
 	{
 		Long chatId = msg.getChatId();
 		SendMessage response = new SendMessage();
-		System.out.println("Метод createExercise (/create_exercise,[Название,Описание]) вызван");
+		System.out.println("Метод createExercise /create_exercise вызван");
 		log.debug(msg.getText());
 
+		/*
 		String[] parts = command.split(",");
 		String name = parts[1];
 		String description = parts[2];
@@ -512,6 +525,7 @@ public class UpdateController {
 		response.setChatId(chatId);
 		response.setText("Добавлено упражнение " + name + " " + description + " " + type);
 		bot.sendAnswerMessage(response);
+		*/
 	}
 
 	private void deleteExercise(String command, Message msg)
@@ -531,6 +545,29 @@ public class UpdateController {
 		bot.sendAnswerMessage(response);
 
 	}
+
+	private void toggleNotification(Message msg)
+	{
+		String getFlagQuery = "select notify from users where chat_id = ?;";
+		String setFlagQuery = "update users set notify = ?;";
+		Long chatId = msg.getChatId();
+		Boolean notifyFlag;
+
+		String text = "Ваши напоминания были включены.";
+
+        notifyFlag = jdbcTemplate.queryForObject(getFlagQuery, new Object[]{chatId}, Boolean.class);
+		jdbcTemplate.update(setFlagQuery, new Object[]{Boolean.FALSE.equals(notifyFlag)});
+
+		SendMessage response = new SendMessage();
+		response.setChatId(chatId.toString());
+		if(Boolean.TRUE.equals(notifyFlag))
+		{
+			text = "Ваши напоминания были отключены.";
+		}
+		response.setText(text);
+		bot.sendAnswerMessage(response);
+    }
+
 
 }
 
