@@ -1,54 +1,25 @@
 package project.model;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.controller.FitnessBot;
-/*
-public interface Exercise {
 
-    String getName();
-    String getDescription();
-    Integer getExerciseId();
-    int getSets();
-    int getRepetitions();
-    float getWeightPerRep();
-    float getTimeInSeconds();
-    void startExercise(long chatId, FitnessBot bot);
-}
-*/
-
-
-/*
-    create table customexercise
-(
-id SERIAL PRIMARY KEY,
-name text[],
-description text[],
-sets integer,
-repetitions integer,
-type text[]
-);
-
-  id
-  name
-  description
-  sets
-  repetitions
-  type - "custom"
-
- */
-
-public class CustomExcercise {
+public class CustomExercise {
 
     private Integer id;
     @Getter
+    @Setter
     private String name;
     @Getter
+    @Setter
     private String description;
     @Getter
+    @Setter
     private int sets; // Количество подходов
     @Getter
+    @Setter
     private int repetitions; // Количество повторений
     private static int idCounter = 1;
     private int currentSet = 0;
@@ -59,8 +30,12 @@ public class CustomExcercise {
         idCounter++;
     }
 
+    public CustomExercise()
+    {
+
+    }
     // КОЛ-ВО ПОВТОРЕНИЙ + КОЛ-ВО ПОДХОДОВ
-    public CustomExcercise(String name, String description, int sets, int repetitions) {
+    public CustomExercise(String name, String description, int sets, int repetitions) {
         this.name = name;
         this.description = description;
         this.sets = sets;

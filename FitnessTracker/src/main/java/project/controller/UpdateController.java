@@ -29,8 +29,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import javax.print.DocFlavor;
-
 
 @Component
 public class UpdateController {
@@ -39,6 +37,10 @@ public class UpdateController {
 	private Map<Long, OrdinaryExercise> activeOrdinaryExercises = new HashMap<>();
 	private Map<Long, TimeExercise> activeTimeExercises = new HashMap<>();
 	private Map<Long, WeightExercise> activeWeightExercises = new HashMap<>();
+
+
+	private CustomExercise newExercise;
+	private StateMachine stateMachine = StateMachine.Listen;
 
 	private static final Logger log = Logger.getLogger(FitnessBot.class);
 
@@ -62,7 +64,7 @@ public class UpdateController {
 			String callbackData = update.getCallbackQuery().getData();
 
 			if (callbackData.contains("YES_BUTTON")) {
-				log.debug(callbackData.toString());
+				log.debug(callbackData);
 				addExerciseToTraining(update, callbackData);
 			}
 			else if (callbackData.contains("NO_BUTTON")) {
@@ -85,53 +87,153 @@ public class UpdateController {
 	private void defineCommand(Message msg) {
 		String command = msg.getText();
 
-		if (command.startsWith("/start ")) {
-			command = command.replaceAll("/start ", "");
-			describeExercise(command, msg);
-		} 
-		else if (command.startsWith("/start_exercise")) {
-			startExercise(command, msg);
-		}
-		else if (command.startsWith("/create_exercise")) {
-			createExercise(command, msg);
-		}
-		else if (command.startsWith("/delete_exercise")) {
-			deleteExercise(command, msg);
-		}
-		else {
-			switch (command) {
-				case "/start":
-					sendWelcomeMessage(msg);
-					break;
-				case "/register":
-					registerUser(msg);
-					break;
-				case "/tren":
-					viewExercises(msg);
-					break;
-				case "/delete":
-					confirmAccountDeletion(msg);
-					break;
-				case "ПОДТВЕРДИТЬ УДАЛЕНИЕ":
+		switch(stateMachine) {
+			case Delete: {
+                if (command.equals("ПОДТВЕРДИТЬ УДАЛЕНИЕ")) {
 					deleteUser(msg);
-					break;
-				case "/stop_exercise":
-					stopExercise(msg);
-					break;
-				case "/finish_set":
-					finishSet(msg);
-					break;
-				case "/toggle_notification":
-					toggleNotification(msg);
-					break;
-				default:
+					stateMachine = StateMachine.Listen;
+				} else if (command.equalsIgnoreCase("отмена")) {
+					stateMachine = StateMachine.Listen;
 					SendMessage response = new SendMessage();
 					response.setChatId(msg.getChatId().toString());
-					response.setText("Неизвестная команда. Попробуйте снова.");
+					response.setText("Удаление профиля отменено.");
 					bot.sendAnswerMessage(response);
-					break;
+				} else {
+                    SendMessage response = new SendMessage();
+                    response.setChatId(msg.getChatId().toString());
+                    response.setText("Бот ожидает подтверждения. Напишите \"Отмена\" для отмены удаления.");
+                    bot.sendAnswerMessage(response);
+                }
+				break;
+			}
+			case GetReps: {
+				getRepsDialog(msg);
+				stateMachine = StateMachine.Create; // just for fun
+				createExercise(msg);
+				stateMachine = StateMachine.Listen;
+				break;
+			}
+			case GetSets: {
+				getSetsDialog(msg);
+				stateMachine = StateMachine.GetReps;
+				break;
+			}
+			case GetName: {
+				getNameDialog(msg);
+				stateMachine = StateMachine.GetDescr;
+				break;
+			}
+			case GetDescr: {
+				getDescriptionDialog(msg);
+				stateMachine = StateMachine.GetSets;
+				break;
+			}
+			case Listen:
+			case Command: {
+				if (command.startsWith("/start ")) {
+					command = command.replaceAll("/start ", "");
+					describeExercise(command, msg);
+				} else if (command.startsWith("/start_exercise")) {
+					startExercise(command, msg);
+				} else if (command.startsWith("/delete_exercise")) {
+					deleteExercise(command, msg);
+				} else {
+					switch (command) {
+						case "/create_exercise":
+							newExercise = new CustomExercise();
+							stateMachine = StateMachine.GetName;
+							getNameResponse(msg);
+							break;
+						case "/start":
+							sendWelcomeMessage(msg);
+							break;
+						case "/register":
+							registerUser(msg);
+							break;
+						case "/tren":
+							viewExercises(msg);
+							break;
+						case "/delete_user":
+							confirmAccountDeletion(msg);
+							stateMachine = StateMachine.Delete;
+							break;
+						case "/stop_exercise":
+							stopExercise(msg);
+							break;
+						case "/finish_set":
+							finishSet(msg);
+							break;
+						case "/toggle_notification":
+							toggleNotification(msg);
+							break;
+						default:
+							SendMessage response = new SendMessage();
+							response.setChatId(msg.getChatId().toString());
+							response.setText("Неизвестная команда. Попробуйте снова.");
+							bot.sendAnswerMessage(response);
+							break;
+					}
+				}
+				break;
 			}
 		}
+	}
+
+	private void createExercise(Message msg) {
+
+		// sql запрос INSERT (C из CRUD)
+
+		String sql = "INSERT INTO customexercise (name, description, sets, repetitions, type) VALUES (array[?], array[?], ?, ?, array['custom'])";
+		jdbcTemplate.update(sql, newExercise.getName(), newExercise.getDescription(), newExercise.getSets(), newExercise.getRepetitions());
+		SendMessage response = new SendMessage();
+		response.setChatId(msg.getChatId());
+		response.setText("Ваше упражнение создано!");
+		bot.sendAnswerMessage(response);
+	}
+
+	private void getRepsDialog(Message msg) {
+		String reps = msg.getText();
+		newExercise.setRepetitions(Integer.parseInt(reps));
+	}
+
+	private void getSetsDialog(Message msg) {
+        String sets = msg.getText();
+		newExercise.setSets(Integer.parseInt(sets));
+
+		SendMessage response = new SendMessage();
+		response.setChatId(msg.getChatId());
+		response.setText("Сколько повторений у вашего упражнения? Введите число.");
+		bot.sendAnswerMessage(response);
+	}
+
+	private void getDescriptionDialog(Message msg) {
+
+		String description = msg.getText();
+		newExercise.setDescription(description);
+
+		SendMessage response = new SendMessage();
+		response.setChatId(msg.getChatId());
+		response.setText("Сколько подходов у вашего упражнения? Введите число.");
+		bot.sendAnswerMessage(response);
+	}
+
+	private void getNameDialog(Message msg) {
+		String exerciseName = msg.getText();
+		newExercise.setName(exerciseName);
+		// id autogenerated
+		//String sql = "INSERT INTO customexercise (name, type) VALUES (array[?], array['custom'])";
+		SendMessage response = new SendMessage();
+		response.setChatId(msg.getChatId());
+		response.setText("Введите описание своего упражнения. В него могут входить подробности того как следует его выполнять" +
+				" или необходимый инвентарь.");
+		bot.sendAnswerMessage(response);
+	}
+
+	private void getNameResponse(Message msg) {
+		SendMessage response = new SendMessage();
+		response.setChatId(msg.getChatId());
+		response.setText("Введите название упражнения, которое вы хотите добавить.");
+		bot.sendAnswerMessage(response);
 	}
 
 	private void sendWelcomeMessage(Message msg) {
@@ -204,21 +306,27 @@ public class UpdateController {
 
 	private void viewExercises(Message msg) {
 		SendMessage sendMessage = new SendMessage();
-		String helpStr = new String();
+		StringBuilder helpStr = new StringBuilder();
 		sendMessage.setChatId(msg.getChatId());
+		String botUrl = bot.getUrl();
 		for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
-			helpStr += "<a href='" + "https://t.me/FitTrackDomovonokBot?start=" + entry.getKey().toString() + "'>"
-					+ entry.getValue().getName() + "</a>\n";
+			helpStr.append("<a href='");
+			helpStr.append(botUrl);
+			helpStr.append("?start=");
+			helpStr.append(entry.getKey().toString());
+			helpStr.append("'>");
+			helpStr.append(entry.getValue().getName());
+			helpStr.append("</a>\n");
 		}
-
-		sendMessage.setText(helpStr);
+	//botUrl + "?start=" +
+		sendMessage.setText(String.valueOf(helpStr));
 		sendMessage.enableHtml(true);
 		bot.sendAnswerMessage(sendMessage);
 		log.debug(msg.getText());
 	}
 	private void describeExercise(String command, Message msg) {
 		SendMessage response = new SendMessage();
-		String text = new String();
+		String text;
 		text = bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getName() + "\n";
 		text += bot.getExercises().getExerciseMap().get(Integer.valueOf(command)).getDescription() + "\n\nДобавить упражнение в вашу тренировку?";
 		response.setChatId(msg.getChatId().toString());
@@ -508,25 +616,6 @@ public class UpdateController {
 	}
 
 	// CRUD Region
-	private void createExercise(String command, Message msg)
-	{
-		Long chatId = msg.getChatId();
-		SendMessage response = new SendMessage();
-		System.out.println("Метод createExercise /create_exercise вызван");
-		log.debug(msg.getText());
-
-		/*
-		String[] parts = command.split(",");
-		String name = parts[1];
-		String description = parts[2];
-		String type = "Flexible";
-		String sql="INSERT INTO exercises (name,description, type) VALUES (?,?,?)";
-		jdbcTemplate.update(sql, name, description, type);
-		response.setChatId(chatId);
-		response.setText("Добавлено упражнение " + name + " " + description + " " + type);
-		bot.sendAnswerMessage(response);
-		*/
-	}
 
 	private void deleteExercise(String command, Message msg)
 	{

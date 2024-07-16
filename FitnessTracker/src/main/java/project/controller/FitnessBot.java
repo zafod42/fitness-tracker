@@ -1,5 +1,4 @@
 package project.controller;
-import lombok.Synchronized;
 import project.model.*;
 
 import lombok.Getter;
@@ -17,7 +16,6 @@ import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import javax.annotation.PostConstruct;
 
 @Component
@@ -26,6 +24,9 @@ public class FitnessBot extends TelegramLongPollingBot {
 	private String name;
 	@Value("${bot.token}")
 	private String token;
+	@Value("${bot.url}")
+	@Getter
+	private String url;
 
 	private final UpdateController controller;
 	@Getter
@@ -38,9 +39,10 @@ public class FitnessBot extends TelegramLongPollingBot {
         Exercises.initialize();
 
 		List<BotCommand> listOfCommands = new ArrayList<>();
-        	listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
+        listOfCommands.add(new BotCommand("/start", "запустить фитнес-трекер"));
 		listOfCommands.add(new BotCommand("/register", "зарегистрироваться"));
-        	listOfCommands.add(new BotCommand("/tren", "вывод списка доступных упражнений"));
+		listOfCommands.add(new BotCommand("/delete_user","удаление профиля"));
+		listOfCommands.add(new BotCommand("/tren", "вывод списка доступных упражнений"));
 		listOfCommands.add(new BotCommand("/start_exercise", "начать упражнение"));
 		listOfCommands.add(new BotCommand("/finish_set", "закончить подход"));
 		listOfCommands.add(new BotCommand("/stop_exercise", "досрочно завершить упражнение"));
@@ -49,11 +51,11 @@ public class FitnessBot extends TelegramLongPollingBot {
 		listOfCommands.add(new BotCommand("/delete_exercise", "удалить упражнение"));
 		listOfCommands.add(new BotCommand("/toggle_notification", "переключить уведомления"));
 		try {
-            		this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
-        	}
+			this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+		}
 		catch (TelegramApiException e) {
-            		log.error("Error setting bot's command list: " + e.getMessage());
-        	}
+			log.error("Error setting bot's command list: " + e.getMessage());
+		}
 	}
 
 	@PostConstruct
@@ -93,14 +95,10 @@ public class FitnessBot extends TelegramLongPollingBot {
 		sendMessage.enableMarkdown(true);
 		sendMessage.setChatId(chatId);
 		sendMessage.setText(msg);
-		try
-		{
+		try {
 			execute(sendMessage);
-		} catch(TelegramApiException e)
-		{
+		} catch(TelegramApiException e) {
 			log.error(e);
 		}
-
 	}
-
 }

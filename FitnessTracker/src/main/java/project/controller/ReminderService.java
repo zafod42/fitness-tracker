@@ -24,9 +24,7 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +56,5 @@ public class ReminderService {
             if (!notifyFlag.get(i)) continue;
             bot.sendMsg(chatIDs.get(i).toString(), "Не забудьте сегодня потренироваться.");
         }
-        //bot.sendMsg();
     }
 }
