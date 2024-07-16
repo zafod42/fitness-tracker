@@ -84,6 +84,7 @@ public class FitnessBot extends TelegramLongPollingBot {
                 execute(message);
             }
 			catch (TelegramApiException e) {
+				e.printStackTrace();
                 log.error(e);
             }
         }

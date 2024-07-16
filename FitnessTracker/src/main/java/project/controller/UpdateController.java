@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.io.*;
 
+//import jdk.javadoc.internal.doclets.formats.html.markup.Text;
 import project.model.*;
 
 import org.apache.log4j.Logger;
@@ -65,7 +66,12 @@ public class UpdateController {
 
 			if (callbackData.contains("YES_BUTTON")) {
 				log.debug(callbackData);
-				addExerciseToTraining(update, callbackData);
+				if (stateMachine.equals(StateMachine.Listen)) {
+					addExerciseToTraining(update, callbackData);
+				}
+				else if (stateMachine.equals(StateMachine.DeleteExercise)) {
+					//deleteExercise(update, callbackData);
+				}
 			}
 			else if (callbackData.contains("NO_BUTTON")) {
 				DeleteMessage deleteMessage = new DeleteMessage();
@@ -106,6 +112,11 @@ public class UpdateController {
                 }
 				break;
 			}
+			case DeleteExercise: {
+				deleteExercise(msg); // sets stateMachine
+				stateMachine = StateMachine.Listen;
+				break;
+			}
 			case GetReps: {
 				getRepsDialog(msg);
 				stateMachine = StateMachine.Create; // just for fun
@@ -128,6 +139,11 @@ public class UpdateController {
 				stateMachine = StateMachine.GetSets;
 				break;
 			}
+			case UpdateExercise: {
+				updateExercise(msg);
+				stateMachine = StateMachine.Listen;
+				break;
+			}
 			case Listen:
 			case Command: {
 				if (command.startsWith("/start ")) {
@@ -135,10 +151,16 @@ public class UpdateController {
 					describeExercise(command, msg);
 				} else if (command.startsWith("/start_exercise")) {
 					startExercise(command, msg);
-				} else if (command.startsWith("/delete_exercise")) {
-					deleteExercise(command, msg);
 				} else {
 					switch (command) {
+						case "/delete_exercise": {
+							deleteExerciseDialog(msg); // sets StateMachine
+							break;
+						}
+						case "/update_exercise": {
+							updateExerciseDialog(msg); // sets StateMachine
+							break;
+						}
 						case "/create_exercise":
 							newExercise = new CustomExercise();
 							stateMachine = StateMachine.GetName;
@@ -166,6 +188,7 @@ public class UpdateController {
 						case "/toggle_notification":
 							toggleNotification(msg);
 							break;
+
 						default:
 							SendMessage response = new SendMessage();
 							response.setChatId(msg.getChatId().toString());
@@ -179,12 +202,110 @@ public class UpdateController {
 		}
 	}
 
+	private void updateExercise(Message msg) {
+		Long chatId = msg.getChatId();
+		SendMessage response = new SendMessage();
+		response.setChatId(chatId);
+		System.out.println("Метод deleteExercise (/update id");
+		String[] text = msg.getText().split(" ");
+		Integer exerciseId;
+		if(text.length > 1) {
+			exerciseId = Integer.parseInt(msg.getText().split(" ")[1]);
+		}
+		else {
+			return;
+		}
+		log.debug(msg.getText());
+
+		String sql = "UPDATE customExercise SET description = ? WHERE id = ?";
+		jdbcTemplate.update(sql, msg.getText(), exerciseId);
+
+		bot.getExercises().update();
+
+		response.setText("Упражнение удалено");
+		bot.sendAnswerMessage(response);
+	}
+
+	private void updateExerciseDialog(Message msg) {
+		SendMessage sendMessage = new SendMessage();
+		sendMessage.setChatId(msg.getChatId());
+		StringBuilder msgText = new StringBuilder();
+		Boolean isEmpty = Boolean.TRUE;
+		msgText.append("Выберите упражнение, которое вы хотите изменить.\n");
+		for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
+			if(entry.getKey() < 1000) {
+				isEmpty = Boolean.FALSE;
+				msgText.append("<a href='");
+				msgText.append(bot.getUrl());
+				msgText.append("?start=");
+				msgText.append(entry.getKey().toString());
+				msgText.append("'>");
+				msgText.append(entry.getValue().getName());
+				msgText.append("</a>\n");
+			}
+		}
+		//botUrl + "?start=" +
+		if (isEmpty){
+			String text = "Нет упражнений, которые можно изменить.";
+			sendMessage.setText(text);
+			bot.sendAnswerMessage(sendMessage);
+			stateMachine = StateMachine.Listen;
+		}
+		else {
+			sendMessage.setText(String.valueOf(msgText));
+			sendMessage.enableHtml(true);
+			bot.sendAnswerMessage(sendMessage);
+			log.debug(msg.getText());
+			log.debug(String.valueOf(msgText));
+			stateMachine = StateMachine.UpdateExercise;
+		}
+	}
+
+	private void deleteExerciseDialog(Message msg) {
+		SendMessage sendMessage = new SendMessage();
+		sendMessage.setChatId(msg.getChatId());
+		StringBuilder msgText = new StringBuilder();
+		Boolean isEmpty = Boolean.TRUE;
+		msgText.append("Выберите упражнение, которое вы хотите удалить.\n");
+		for (HashMap.Entry<Integer, Exercise> entry : bot.getExercises().getExerciseMap().entrySet()) {
+			if(entry.getKey() < 1000) {
+				isEmpty = Boolean.FALSE;
+				msgText.append("<a href='");
+				msgText.append(bot.getUrl());
+				msgText.append("?start=");
+				msgText.append(entry.getKey().toString());
+				msgText.append("'>");
+				msgText.append(entry.getValue().getName());
+				msgText.append("</a>\n");
+			}
+		}
+		//botUrl + "?start=" +
+		if (isEmpty){
+			String text = "Нет упражнений, которые можно удалить.";
+			sendMessage.setText(text);
+			bot.sendAnswerMessage(sendMessage);
+			stateMachine = StateMachine.Listen;
+		}
+		else {
+			sendMessage.setText(String.valueOf(msgText));
+			sendMessage.enableHtml(true);
+			bot.sendAnswerMessage(sendMessage);
+			log.debug(msg.getText());
+			log.debug(String.valueOf(msgText));
+			stateMachine = StateMachine.DeleteExercise;
+		}
+	}
+
 	private void createExercise(Message msg) {
 
 		// sql запрос INSERT (C из CRUD)
 
-		String sql = "INSERT INTO customexercise (name, description, sets, repetitions, type) VALUES (array[?], array[?], ?, ?, array['custom'])";
+		String sql = "INSERT INTO customexercise (name, description, sets, repetitions, type) VALUES (?, ?, ?, ?, 'custom')";
 		jdbcTemplate.update(sql, newExercise.getName(), newExercise.getDescription(), newExercise.getSets(), newExercise.getRepetitions());
+
+		// Update exercises table
+		bot.getExercises().update();
+
 		SendMessage response = new SendMessage();
 		response.setChatId(msg.getChatId());
 		response.setText("Ваше упражнение создано!");
@@ -323,6 +444,7 @@ public class UpdateController {
 		sendMessage.enableHtml(true);
 		bot.sendAnswerMessage(sendMessage);
 		log.debug(msg.getText());
+		log.debug(String.valueOf(helpStr));
 	}
 	private void describeExercise(String command, Message msg) {
 		SendMessage response = new SendMessage();
@@ -617,19 +739,27 @@ public class UpdateController {
 
 	// CRUD Region
 
-	private void deleteExercise(String command, Message msg)
+	private void deleteExercise(Message msg)
 	{
 		Long chatId = msg.getChatId();
 		SendMessage response = new SendMessage();
-		System.out.println("Метод deleteExercise (/delete_exercise,[Название]) вызван");
+		response.setChatId(chatId);
+		System.out.println("Метод deleteExercise (/delete id");
+		String[] text = msg.getText().split(" ");
+		Integer exerciseId;
+		if(text.length > 1) {
+			exerciseId = Integer.parseInt(msg.getText().split(" ")[1]);
+		}
+		else {
+			return;
+		}
 		log.debug(msg.getText());
 
-		String[] parts = command.split(",");
-		String name = parts[1];
+		String sql = "DELETE FROM customExercise WHERE id = ?";
+		jdbcTemplate.update(sql, exerciseId);
 
-		String sql = "DELETE FROM exercises WHERE name = ?";
-		jdbcTemplate.update(sql, name);
-		response.setChatId(chatId);
+		bot.getExercises().update();
+
 		response.setText("Упражнение удалено");
 		bot.sendAnswerMessage(response);
 

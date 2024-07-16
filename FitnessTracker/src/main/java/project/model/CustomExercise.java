@@ -6,7 +6,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import project.controller.FitnessBot;
 
-public class CustomExercise {
+public class CustomExercise extends Exercise{
 
     private Integer id;
     @Getter
@@ -23,6 +23,7 @@ public class CustomExercise {
     private int repetitions; // Количество повторений
     private static int idCounter = 1;
     private int currentSet = 0;
+    @Setter
     private boolean isRunning = false; // Статус выполнения упражнения
 
     private void generateId() {
@@ -108,10 +109,6 @@ public class CustomExercise {
 
     public boolean isRunning() {
         return isRunning;
-    }
-
-    public void setIsRunning(boolean running) {
-        isRunning = running;
     }
 
     public Integer getExerciseId() {
